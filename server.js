@@ -10,6 +10,7 @@ app.use(cors());
 const fs = require('fs');
 const { Storage } = require('@google-cloud/storage');
 const admin = require('firebase-admin');
+const { getAuth } = require('firebase-admin/auth');
 
 // Google Discovery Engine Client & Storage Client initialisieren mit robustem Anmelde-Fallback
 const clientOptions = {
@@ -26,15 +27,15 @@ if (fs.existsSync('key.json')) {
     
     // Firebase Admin mit lokalem Key initialisieren
     const keyData = JSON.parse(fs.readFileSync('key.json', 'utf8'));
-    firebaseAdminOptions.credential = admin.credential.cert(keyData);
+    firebaseAdminOptions.credential = admin.cert(keyData);
     console.log('Verwende lokale key.json für Authentifizierung.');
 } else if (process.env.GOOGLE_APPLICATION_CREDENTIALS) {
     clientOptions.keyFilename = process.env.GOOGLE_APPLICATION_CREDENTIALS;
     storageOptions.keyFilename = process.env.GOOGLE_APPLICATION_CREDENTIALS;
-    firebaseAdminOptions.credential = admin.credential.applicationDefault();
+    firebaseAdminOptions.credential = admin.applicationDefault();
     console.log('Verwende GOOGLE_APPLICATION_CREDENTIALS aus Umgebungsvariablen.');
 } else {
-    firebaseAdminOptions.credential = admin.credential.applicationDefault();
+    firebaseAdminOptions.credential = admin.applicationDefault();
     console.log('Keine explizite Key-Datei gefunden. Verwende Standard-Dienstkonto (Application Default Credentials).');
 }
 
@@ -58,7 +59,7 @@ const verifyToken = async (req, res, next) => {
         }
 
         const idToken = authHeader.split('Bearer ')[1];
-        const decodedToken = await admin.auth().verifyIdToken(idToken);
+        const decodedToken = await getAuth().verifyIdToken(idToken);
         
         // Verifizierten Benutzer an das Request-Objekt hängen
         req.user = decodedToken;
