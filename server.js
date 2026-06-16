@@ -170,8 +170,13 @@ const PROJECT_ID = 'klaro-475913';
 const LOCATION = 'global';
 const ENGINE_ID = 'klaro-search_1761300255655';
 
+const path = require('path');
+
+// Statische Dateien des gebauten Frontends ausliefern
+app.use(express.static(path.join(__dirname, 'frontend/dist')));
+
 // Health-Check Endpoint für Cloud Run und lokale Tests
-app.get('/', (req, res) => {
+app.get('/api/health', (req, res) => {
     res.status(200).send('KLARO Vertex Backend läuft!');
 });
 
@@ -307,6 +312,11 @@ app.post('/api/chat', verifyToken, async (req, res) => {
         console.error('FEHLER_DETAILS:', error);
         res.status(500).json({ error: error.message, stack: error.stack });
     }
+});
+
+// Fallback für alle anderen Routen, um die React Single Page Application auszuliefern
+app.get('*', (req, res) => {
+    res.sendFile(path.join(__dirname, 'frontend/dist', 'index.html'));
 });
 
 // Dynamischer Port (wichtig für Cloud Run, Fallback auf 8080 für lokal)

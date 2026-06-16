@@ -33,7 +33,7 @@ interface Message {
 
 const BACKEND_URL = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
   ? 'http://localhost:8080/api/chat'
-  : 'https://klaro-backend-161764644775.europe-west3.run.app/api/chat';
+  : '/api/chat';
 
 function App() {
   const [user, setUser] = useState<User | null>(null);
