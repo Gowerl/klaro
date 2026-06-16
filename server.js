@@ -18,31 +18,27 @@ const clientOptions = {
 };
 
 const storageOptions = {};
-const firebaseAdminOptions = {};
+const firebaseAdminOptions = {
+    projectId: process.env.FIREBASE_PROJECT_ID || 'klaro-app-b223e'
+};
 
 // Bevorzuge lokal die key.json, um Konflikte mit globalen System-Umgebungsvariablen zu vermeiden
 if (fs.existsSync('key.json')) {
     clientOptions.keyFilename = 'key.json';
     storageOptions.keyFilename = 'key.json';
-    
-    // Firebase Admin mit lokalem Key initialisieren
-    const keyData = JSON.parse(fs.readFileSync('key.json', 'utf8'));
-    firebaseAdminOptions.credential = admin.cert(keyData);
-    console.log('Verwende lokale key.json für Authentifizierung.');
+    console.log('Verwende lokale key.json für Authentifizierung der Google-APIs.');
 } else if (process.env.GOOGLE_APPLICATION_CREDENTIALS) {
     clientOptions.keyFilename = process.env.GOOGLE_APPLICATION_CREDENTIALS;
     storageOptions.keyFilename = process.env.GOOGLE_APPLICATION_CREDENTIALS;
-    firebaseAdminOptions.credential = admin.applicationDefault();
     console.log('Verwende GOOGLE_APPLICATION_CREDENTIALS aus Umgebungsvariablen.');
 } else {
-    firebaseAdminOptions.credential = admin.applicationDefault();
-    console.log('Keine explizite Key-Datei gefunden. Verwende Standard-Dienstkonto (Application Default Credentials).');
+    console.log('Keine explizite Key-Datei gefunden. Verwende Standard-Dienstkonto.');
 }
 
 // Firebase Admin SDK initialisieren
 try {
     admin.initializeApp(firebaseAdminOptions);
-    console.log('Firebase Admin SDK erfolgreich initialisiert.');
+    console.log(`Firebase Admin SDK erfolgreich initialisiert für Projekt: ${firebaseAdminOptions.projectId}`);
 } catch (error) {
     console.error('Fehler beim Initialisieren des Firebase Admin SDK:', error);
 }
