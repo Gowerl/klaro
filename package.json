@@ -1,0 +1,17 @@
+{
+  "name": "klaro-vertex-backend",
+  "version": "1.0.0",
+  "description": "Sicheres Backend für den KLARO Vertex Agenten",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "@google-cloud/discoveryengine": "latest",
+    "@google-cloud/storage": "^7.21.0",
+    "cors": "^2.8.5",
+    "dotenv": "^17.4.2",
+    "express": "^4.19.2",
+    "firebase-admin": "^14.0.0"
+  }
+}
