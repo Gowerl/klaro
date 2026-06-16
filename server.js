@@ -137,6 +137,26 @@ const getMetadataField = (structData, fieldName) => {
     return structData[fieldName] || null;
 };
 
+// Extrahierung der Sprache aus Metadaten und URI mit robustem Fallback
+const extractLanguage = (uri, structData) => {
+    let language = getMetadataField(structData, 'language');
+    if (language) {
+        language = language.toLowerCase();
+        if (language === 'german' || language === 'de-de') language = 'de';
+        if (language === 'english' || language === 'en-us' || language === 'en-gb') language = 'en';
+        if (language === 'french' || language === 'fr-fr') language = 'fr';
+    }
+    
+    if (!language && uri) {
+        const lowerUri = uri.toLowerCase();
+        if (lowerUri.includes('-de-') || lowerUri.includes('/de/') || lowerUri.includes('_de_') || lowerUri.includes('deutsch')) language = 'de';
+        else if (lowerUri.includes('-en-') || lowerUri.includes('/en/') || lowerUri.includes('_en_') || lowerUri.includes('english')) language = 'en';
+        else if (lowerUri.includes('-fr-') || lowerUri.includes('/fr/') || lowerUri.includes('_fr_') || lowerUri.includes('francais') || lowerUri.includes('français')) language = 'fr';
+    }
+    
+    return language || null;
+};
+
 // Leichtgewichtige Stoppwort-Analyse zur Spracherkennung der Konversation
 function detectConversationLanguage(message, answerText, references) {
     const textToAnalyze = ((answerText || "") + " " + (message || "")).toLowerCase();
@@ -218,14 +238,8 @@ app.post('/api/chat', verifyToken, async (req, res) => {
         const addSource = (uri, title, structData) => {
             if (!uri || seenUris.has(uri)) return;
 
-            // Sprache mit robustem Fallback aus URI auslesen
-            let language = getMetadataField(structData, 'language');
-            if (!language) {
-                if (uri.includes('-de-') || uri.includes('/de/')) language = 'de';
-                else if (uri.includes('-en-') || uri.includes('/en/')) language = 'en';
-                else if (uri.includes('-fr-') || uri.includes('/fr/')) language = 'fr';
-                else language = 'de';
-            }
+            // Sprache mit robustem Fallback auslesen (Standard: de)
+            const language = extractLanguage(uri, structData) || 'de';
 
             // Dokumententyp auslesen
             let documentType = getMetadataField(structData, 'document_type');
@@ -241,6 +255,7 @@ app.post('/api/chat', verifyToken, async (req, res) => {
 
             // STRIKTER FILTER: Nur Dokumente in der aktuellen Konversationssprache anzeigen
             if (language !== convLang) {
+                console.log(`Filtere aus (Sprache ${language} ungleich Konversationssprache ${convLang}): ${uri}`);
                 return;
             }
 
@@ -253,12 +268,15 @@ app.post('/api/chat', verifyToken, async (req, res) => {
             });
         };
 
-        // 1. Suche in den Top-Level-Referenzen
+        // 1. Suche in den Top-Level-Referenzen (korrigiert auf chunkInfo.documentMetadata)
         if (response.answer?.references) {
             for (const ref of response.answer.references) {
-                const uri = ref.documentMetadata?.uri;
-                const title = ref.documentMetadata?.title;
-                addSource(uri, title || "Dokument", ref.documentMetadata?.structData);
+                const metadata = ref.chunkInfo?.documentMetadata;
+                if (metadata) {
+                    const uri = metadata.uri;
+                    const title = metadata.title;
+                    addSource(uri, title || "Dokument", metadata.structData);
+                }
             }
         }
 
@@ -287,11 +305,16 @@ app.post('/api/chat', verifyToken, async (req, res) => {
         }));
 
         // Wandle alle URIs in den Referenzen (für Inline-Zitate [1], [2], etc.) ebenfalls in Signed URLs um
+        // Filtere zudem Inline-Zitate heraus, die nicht zur Konversationssprache passen
         const signedReferences = response.answer?.references 
             ? await Promise.all(response.answer.references.map(async (ref) => {
                 const refCopy = JSON.parse(JSON.stringify(ref));
                 const metadata = refCopy.chunkInfo?.documentMetadata;
                 if (metadata) {
+                    const lang = extractLanguage(metadata.uri, metadata.structData) || 'de';
+                    if (lang !== convLang) {
+                        return null; // Zitat-Referenz ausblenden, falls Sprache ungleich Konversationssprache
+                    }
                     if (metadata.uri) {
                         metadata.uri = await generateSignedUrl(metadata.uri);
                     }
