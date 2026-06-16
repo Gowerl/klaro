@@ -18,6 +18,7 @@ const DOCUMENT_TYPE_LABELS: Record<string, string> = {
   montageanleitung: 'Montageanleitungen',
   zertifikat: 'Zertifikate',
   zeichnung: 'Zeichnungen',
+  website: 'Website-Inhalte',
   sonstiges: 'Weitere Dokumente'
 };
 
@@ -349,7 +350,7 @@ function App() {
           {/* Knowledge Base */}
           <div className="stats-card">
             <span className="stats-card-title">Wissensdatenbank</span>
-            <span className="stats-card-value" style={{ fontSize: '1.1rem' }}>358 PDFs</span>
+            <span className="stats-card-value" style={{ fontSize: '1.05rem' }}>358 Dok. &amp; Webdaten</span>
             <span className="stats-card-desc">Sprachfilter: Deutsch (DE)</span>
           </div>
 
@@ -452,9 +453,15 @@ function App() {
                               className="source-link-badge"
                               title={src.title}
                             >
-                              <svg viewBox="0 0 24 24" className="source-pdf-icon">
-                                <path d="M19,3H5C3.89,3 3,3.89 3,5V19A2,2 0 0,0 5,21H19A2,2 0 0,0 21,19V5C21,3.89 20.1,3 19,3M19,19H5V5H19V19M10,10.5H14V11.5H11.5V12.5H13.5V13.5H11.5V15H10V10.5M14.5,10.5H17.5A1.5,1.5 0 0,1 19,12V13.5A1.5,1.5 0 0,1 17.5,15H14.5V10.5M16,12V13.5H17.5V12H16M5.5,10.5H8.5V11.5H5.5V12.5H8V13.5H5.5V15H4V10.5H5.5" />
-                              </svg>
+                              {src.documentType === 'website' ? (
+                                <svg viewBox="0 0 24 24" className="source-pdf-icon">
+                                  <path d="M17.9,17.39C17.64,16.59 16.89,16 16,16H15V13A1,1 0 0,0 14,12H8V10H10A1,1 0 0,0 11,9V7H13A2,2 0 0,0 15,5V4.59C17.93,5.77 20,8.64 20,12C20,14.08 19.2,15.97 17.9,17.39M11,19.93C7.07,19.5 4,16.18 4,12C4,9.66 5.05,7.56 6.72,6.13L11,11V13A1,1 0 0,0 12,14H13V16A1,1 0 0,0 14,17H15V18.33L11,19.93M12,2A10,10 0 0,0 2,12A10,10 0 0,0 12,22A10,10 0 0,0 22,12A10,10 0 0,0 12,2Z" />
+                                </svg>
+                              ) : (
+                                <svg viewBox="0 0 24 24" className="source-pdf-icon">
+                                  <path d="M19,3H5C3.89,3 3,3.89 3,5V19A2,2 0 0,0 5,21H19A2,2 0 0,0 21,19V5C21,3.89 20.1,3 19,3M19,19H5V5H19V19M10,10.5H14V11.5H11.5V12.5H13.5V13.5H11.5V15H10V10.5M14.5,10.5H17.5A1.5,1.5 0 0,1 19,12V13.5A1.5,1.5 0 0,1 17.5,15H14.5V10.5M16,12V13.5H17.5V12H16M5.5,10.5H8.5V11.5H5.5V12.5H8V13.5H5.5V15H4V10.5H5.5" />
+                                </svg>
+                              )}
                               {src.title}
                             </a>
                           ))}

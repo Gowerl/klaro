@@ -145,6 +145,7 @@ const extractLanguage = (uri, structData) => {
         if (language === 'german' || language === 'de-de') language = 'de';
         if (language === 'english' || language === 'en-us' || language === 'en-gb') language = 'en';
         if (language === 'french' || language === 'fr-fr') language = 'fr';
+        if (language === 'spanish' || language === 'es-es') language = 'es';
     }
     
     if (!language && uri) {
@@ -152,6 +153,13 @@ const extractLanguage = (uri, structData) => {
         if (lowerUri.includes('-de-') || lowerUri.includes('/de/') || lowerUri.includes('_de_') || lowerUri.includes('deutsch')) language = 'de';
         else if (lowerUri.includes('-en-') || lowerUri.includes('/en/') || lowerUri.includes('_en_') || lowerUri.includes('english')) language = 'en';
         else if (lowerUri.includes('-fr-') || lowerUri.includes('/fr/') || lowerUri.includes('_fr_') || lowerUri.includes('francais') || lowerUri.includes('français')) language = 'fr';
+        else if (lowerUri.includes('-es-') || lowerUri.includes('/es/') || lowerUri.includes('_es_') || lowerUri.includes('spanish') || lowerUri.includes('español') || lowerUri.includes('instrucciones')) language = 'es';
+        else {
+            const match = lowerUri.match(/[-/_]([a-z]{2})[-/_]/);
+            if (match) {
+                language = match[1];
+            }
+        }
     }
     
     return language || null;
@@ -250,6 +258,7 @@ app.post('/api/chat', verifyToken, async (req, res) => {
                 else if (uri.includes('/montageanleitung/')) documentType = 'montageanleitung';
                 else if (uri.includes('/zertifikat/')) documentType = 'zertifikat';
                 else if (uri.includes('/zeichnung/')) documentType = 'zeichnung';
+                else if (uri.includes('klaro.de') || uri.includes('klaro.at') || uri.includes('/web/')) documentType = 'website';
                 else documentType = 'sonstiges';
             }
 
