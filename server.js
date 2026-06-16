@@ -22,6 +22,16 @@ const firebaseAdminOptions = {
     projectId: process.env.FIREBASE_PROJECT_ID || 'klaro-app-b223e'
 };
 
+// Falls der Key als Umgebungsvariable im Deployment hinterlegt ist, schreiben wir ihn temporär in key.json
+if (process.env.GOOGLE_CREDENTIALS_JSON) {
+    try {
+        fs.writeFileSync('key.json', process.env.GOOGLE_CREDENTIALS_JSON, 'utf8');
+        console.log('key.json wurde erfolgreich aus der Umgebungsvariable GOOGLE_CREDENTIALS_JSON erstellt.');
+    } catch (err) {
+        console.error('Fehler beim Schreiben der key.json aus der Umgebungsvariable:', err);
+    }
+}
+
 // Bevorzuge lokal die key.json, um Konflikte mit globalen System-Umgebungsvariablen zu vermeiden
 if (fs.existsSync('key.json')) {
     clientOptions.keyFilename = 'key.json';
