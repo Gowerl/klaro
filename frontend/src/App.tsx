@@ -35,6 +35,31 @@ const BACKEND_URL = window.location.hostname === 'localhost' || window.location.
   ? 'http://localhost:8080/api/chat'
   : '/api/chat';
 
+const getUserInitials = (user: User | null) => {
+  if (!user) return 'DU';
+  if (user.displayName) {
+    const parts = user.displayName.split(' ');
+    if (parts.length > 1) {
+      return (parts[0][0] + parts[1][0]).toUpperCase();
+    }
+    return user.displayName.substring(0, 2).toUpperCase();
+  }
+  if (user.email) {
+    return user.email.substring(0, 2).toUpperCase();
+  }
+  return 'DU';
+};
+
+const getUserDisplayName = (user: User | null) => {
+  if (!user) return 'Du';
+  if (user.displayName) return user.displayName;
+  if (user.email) {
+    const namePart = user.email.split('@')[0];
+    return namePart.charAt(0).toUpperCase() + namePart.slice(1);
+  }
+  return 'Du';
+};
+
 function App() {
   const [user, setUser] = useState<User | null>(null);
   const [isAuthLoading, setIsAuthLoading] = useState(true);
@@ -49,6 +74,8 @@ function App() {
   const [input, setInput] = useState('');
   const [sessionId, setSessionId] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [responseTime, setResponseTime] = useState<string | null>(null);
+  const [scannedDocsCount, setScannedDocsCount] = useState<number>(0);
 
   const scrollRef = useRef<HTMLDivElement>(null);
 
@@ -85,6 +112,8 @@ function App() {
 
     setMessages((prev) => [...prev, userMessage]);
 
+    const startTime = performance.now();
+
     try {
       // Firebase ID-Token für sichere Authentifizierung holen
       const token = await auth.currentUser?.getIdToken();
@@ -106,6 +135,16 @@ function App() {
       }
 
       const data = await response.json();
+
+      const endTime = performance.now();
+      const duration = ((endTime - startTime) / 1000).toFixed(2);
+      setResponseTime(duration);
+
+      if (data.sources) {
+        setScannedDocsCount(data.sources.length);
+      } else {
+        setScannedDocsCount(0);
+      }
 
       const agentMessage: Message = {
         id: `agent-${Date.now()}`,
@@ -274,138 +313,215 @@ function App() {
   }
 
   return (
-    <div className="chat-app-container">
-      {/* Header */}
-      <header className="chat-header">
-        <div className="chat-header-brand">
-          <div className="chat-logo-container">
-            {/* Wassertropfen-Icon SVG */}
-            <svg viewBox="0 0 24 24">
-              <path d="M12,2.69C12,2.69 19,10.15 19,14A7,7 0 0,1 12,21A7,7 0 0,1 5,14C5,10.15 12,2.69 12,2.69M12,19.5A5.5,5.5 0 0,0 17.5,14C17.5,11.57 12.87,7.27 12,6.43C11.13,7.27 6.5,11.57 6.5,14A5.5,5.5 0 0,0 12,19.5Z" />
-            </svg>
-          </div>
-          <div className="chat-header-info">
-            <h1>KLARO KI-Assistent</h1>
-            <p>
+    <div className="app-layout-wrapper">
+      {/* Dashboard Sidebar Panel */}
+      <aside className="dashboard-sidebar">
+        <div className="sidebar-title-section">
+          <span className="sidebar-title">KLARO Dashboard</span>
+          <span className="sidebar-subtitle">KI-Monitor &amp; Statistiken</span>
+        </div>
+
+        <div className="stats-group">
+          {/* Status */}
+          <div className="stats-card">
+            <span className="stats-card-title">System-Status</span>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', margin: '4px 0' }}>
               <span className="chat-status-dot"></span>
-              Klärt deine Fragen
+              <span className="stats-card-value" style={{ fontSize: '1.05rem', color: 'var(--klaro-text-dark)' }}>Online / Aktiv</span>
+            </div>
+            <span className="stats-card-desc">Verbunden mit Vertex AI</span>
+          </div>
+
+          {/* Speed */}
+          <div className="stats-card">
+            <span className="stats-card-title">Antwortzeit</span>
+            <span className="stats-card-value">{responseTime ? `${responseTime}s` : 'Keine Abfrage'}</span>
+            <span className="stats-card-desc">{responseTime ? 'Letzte Abfragegeschwindigkeit' : 'Warte auf erste Frage...'}</span>
+          </div>
+
+          {/* Docs */}
+          <div className="stats-card">
+            <span className="stats-card-title">Gefundene Dokumente</span>
+            <span className="stats-card-value">{scannedDocsCount}</span>
+            <span className="stats-card-desc">In der letzten Antwort referenziert</span>
+          </div>
+
+          {/* Knowledge Base */}
+          <div className="stats-card">
+            <span className="stats-card-title">Wissensdatenbank</span>
+            <span className="stats-card-value" style={{ fontSize: '1.1rem' }}>358 PDFs</span>
+            <span className="stats-card-desc">Sprachfilter: Deutsch (DE)</span>
+          </div>
+
+          {/* Active User */}
+          <div className="stats-card">
+            <span className="stats-card-title">Benutzer</span>
+            <span className="stats-card-value" style={{ fontSize: '1rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+              {getUserDisplayName(user)}
+            </span>
+            <span className="stats-card-desc" style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+              {user?.email || 'Nicht angemeldet'}
+            </span>
+          </div>
+        </div>
+      </aside>
+
+      <div className="chat-app-container">
+        {/* Header */}
+        <header className="chat-header">
+          <div className="chat-header-brand">
+            <div className="chat-logo-container">
+              {/* Wassertropfen-Icon SVG */}
+              <svg viewBox="0 0 24 24">
+                <path d="M12,2.69C12,2.69 19,10.15 19,14A7,7 0 0,1 12,21A7,7 0 0,1 5,14C5,10.15 12,2.69 12,2.69M12,19.5A5.5,5.5 0 0,0 17.5,14C17.5,11.57 12.87,7.27 12,6.43C11.13,7.27 6.5,11.57 6.5,14A5.5,5.5 0 0,0 12,19.5Z" />
+              </svg>
+            </div>
+            <div className="chat-header-info">
+              <h1>KLARO KI-Assistent</h1>
+              <p>
+                <span className="chat-status-dot"></span>
+                Klärt deine Fragen
+              </p>
+            </div>
+          </div>
+          <div className="chat-header-actions">
+            <button className="chat-reset-btn" onClick={handleReset} title="Chat-Verlauf löschen">
+              {/* Reset Icon */}
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
+                <path d="M3 3v5h5" />
+              </svg>
+              Neu starten
+            </button>
+            <button className="chat-reset-btn" onClick={() => signOut(auth)} title="Abmelden" style={{ borderColor: 'rgba(217, 56, 58, 0.2)', color: '#d9383a' }}>
+              {/* Sign Out Icon */}
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+                <polyline points="16 17 21 12 16 7" />
+                <line x1="21" y1="12" x2="9" y2="12" />
+              </svg>
+              Abmelden
+            </button>
+          </div>
+        </header>
+
+        {/* Messages Scroll Area */}
+        <main className="chat-messages-scrollarea">
+          {messages.map((msg) => (
+            <div key={msg.id} className={`message-row ${msg.role === 'user' ? 'user-msg' : 'agent-msg'}`}>
+              <div className="message-avatar" title={msg.role === 'user' ? (user?.email || 'Du') : 'KLARO Assistent'}>
+                {msg.role === 'user' ? (
+                  getUserInitials(user)
+                ) : (
+                  <svg viewBox="0 0 24 24" style={{ width: '18px', height: '18px', fill: '#ffffff' }}>
+                    <path d="M12,2.69C12,2.69 19,10.15 19,14A7,7 0 0,1 12,21A7,7 0 0,1 5,14C5,10.15 12,2.69 12,2.69M12,19.5A5.5,5.5 0 0,0 17.5,14C17.5,11.57 12.87,7.27 12,6.43C11.13,7.27 6.5,11.57 6.5,14A5.5,5.5 0 0,0 12,19.5Z" />
+                  </svg>
+                )}
+              </div>
+              <div className="message-bubble-wrapper">
+                <span className="message-sender-name" style={{ fontSize: '0.75rem', fontWeight: '600', color: 'var(--klaro-text-muted)', marginBottom: '4px', alignSelf: msg.role === 'user' ? 'flex-end' : 'flex-start' }}>
+                  {msg.role === 'user' ? getUserDisplayName(user) : 'KLARO Assistent'}
+                </span>
+                <div className="message-bubble">
+                  {renderMessageText(msg.text, msg.citations, msg.references)}
+                </div>
+
+                {/* Gefundene Dokumente / PDF-Quellen rendering */}
+                {msg.role === 'agent' && msg.sources && msg.sources.length > 0 && (
+                  <div className="message-sources-container">
+                    <span className="sources-title">Gefundene Dokumente:</span>
+                    {Object.entries(
+                      msg.sources.reduce((groups, src) => {
+                        const type = src.documentType || 'sonstiges';
+                        if (!groups[type]) groups[type] = [];
+                        groups[type].push(src);
+                        return groups;
+                      }, {} as Record<string, Source[]>)
+                    ).map(([type, items]) => (
+                      <div key={type} className="sources-group">
+                        <span className="sources-group-title">
+                          {DOCUMENT_TYPE_LABELS[type] || DOCUMENT_TYPE_LABELS.sonstiges}
+                        </span>
+                        <div className="sources-list">
+                          {items.map((src, idx) => (
+                            <a 
+                              key={idx} 
+                              href={src.uri} 
+                              target="_blank" 
+                              rel="noopener noreferrer" 
+                              className="source-link-badge"
+                              title={src.title}
+                            >
+                              <svg viewBox="0 0 24 24" className="source-pdf-icon">
+                                <path d="M19,3H5C3.89,3 3,3.89 3,5V19A2,2 0 0,0 5,21H19A2,2 0 0,0 21,19V5C21,3.89 20.1,3 19,3M19,19H5V5H19V19M10,10.5H14V11.5H11.5V12.5H13.5V13.5H11.5V15H10V10.5M14.5,10.5H17.5A1.5,1.5 0 0,1 19,12V13.5A1.5,1.5 0 0,1 17.5,15H14.5V10.5M16,12V13.5H17.5V12H16M5.5,10.5H8.5V11.5H5.5V12.5H8V13.5H5.5V15H4V10.5H5.5" />
+                              </svg>
+                              {src.title}
+                            </a>
+                          ))}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                <span className="message-meta">{msg.timestamp}</span>
+              </div>
+            </div>
+          ))}
+
+          {/* Loading Indicator */}
+          {isLoading && (
+            <div className="message-row agent-msg">
+              <div className="message-avatar">
+                <svg viewBox="0 0 24 24" style={{ width: '18px', height: '18px', fill: '#ffffff' }}>
+                  <path d="M12,2.69C12,2.69 19,10.15 19,14A7,7 0 0,1 12,21A7,7 0 0,1 5,14C5,10.15 12,2.69 12,2.69M12,19.5A5.5,5.5 0 0,0 17.5,14C17.5,11.57 12.87,7.27 12,6.43C11.13,7.27 6.5,11.57 6.5,14A5.5,5.5 0 0,0 12,19.5Z" />
+                </svg>
+              </div>
+              <div className="message-bubble-wrapper">
+                <span className="message-sender-name" style={{ fontSize: '0.75rem', fontWeight: '600', color: 'var(--klaro-text-muted)', marginBottom: '4px' }}>
+                  KLARO Assistent
+                </span>
+                <div className="message-bubble">
+                  <div className="typing-indicator">
+                    <span className="typing-dot"></span>
+                    <span className="typing-dot"></span>
+                    <span className="typing-dot"></span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+          <div ref={scrollRef} />
+        </main>
+
+        {/* Input Form */}
+        <footer className="chat-input-container">
+          <form onSubmit={handleSend} className="chat-input-form">
+            <input
+              type="text"
+              className="chat-text-input"
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              placeholder="Stelle eine Frage zu KLARO Kleinkläranlagen..."
+              disabled={isLoading}
+              autoFocus
+            />
+            <button type="submit" className="chat-send-button" disabled={isLoading || !input.trim()}>
+              Senden
+            </button>
+          </form>
+          
+          {/* Modified Footer with Address and Disclaimer */}
+          <div className="chat-footer-note" style={{ display: 'flex', flexDirection: 'column', gap: '6px', alignItems: 'center', textAlign: 'center', fontSize: '0.72rem', color: 'var(--klaro-text-muted)', marginTop: '8px', padding: '0 10px' }}>
+            <p style={{ fontWeight: '600', color: 'var(--klaro-blue)', margin: 0 }}>
+              KLARO GmbH • Spitzwegstraße 63 • 95447 Bayreuth • Deutschland
+            </p>
+            <p style={{ fontSize: '0.68rem', opacity: 0.85, maxWidth: '650px', lineHeight: '1.4', margin: 0 }}>
+              Hinweis: Dies ist ein KI-gestützter Assistent. Antworten können Fehler enthalten. Bitte überprüfe wichtige technische Angaben und Zykluswerte stets anhand der Original-Montage- und Betriebsanleitungen.
             </p>
           </div>
-        </div>
-        <div className="chat-header-actions">
-          <button className="chat-reset-btn" onClick={handleReset} title="Chat-Verlauf löschen">
-            {/* Reset Icon */}
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
-              <path d="M3 3v5h5" />
-            </svg>
-            Neu starten
-          </button>
-          <button className="chat-reset-btn" onClick={() => signOut(auth)} title="Abmelden" style={{ borderColor: 'rgba(217, 56, 58, 0.2)', color: '#d9383a' }}>
-            {/* Sign Out Icon */}
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
-              <polyline points="16 17 21 12 16 7" />
-              <line x1="21" y1="12" x2="9" y2="12" />
-            </svg>
-            Abmelden
-          </button>
-        </div>
-      </header>
-
-      {/* Messages Scroll Area */}
-      <main className="chat-messages-scrollarea">
-        {messages.map((msg) => (
-          <div key={msg.id} className={`message-row ${msg.role === 'user' ? 'user-msg' : 'agent-msg'}`}>
-            <div className="message-avatar">
-              {msg.role === 'user' ? 'U' : 'K'}
-            </div>
-            <div className="message-bubble-wrapper">
-              <div className="message-bubble">
-                {renderMessageText(msg.text, msg.citations, msg.references)}
-              </div>
-
-              {/* Gefundene Dokumente / PDF-Quellen rendering */}
-              {msg.role === 'agent' && msg.sources && msg.sources.length > 0 && (
-                <div className="message-sources-container">
-                  <span className="sources-title">Gefundene Dokumente:</span>
-                  {Object.entries(
-                    msg.sources.reduce((groups, src) => {
-                      const type = src.documentType || 'sonstiges';
-                      if (!groups[type]) groups[type] = [];
-                      groups[type].push(src);
-                      return groups;
-                    }, {} as Record<string, Source[]>)
-                  ).map(([type, items]) => (
-                    <div key={type} className="sources-group">
-                      <span className="sources-group-title">
-                        {DOCUMENT_TYPE_LABELS[type] || DOCUMENT_TYPE_LABELS.sonstiges}
-                      </span>
-                      <div className="sources-list">
-                        {items.map((src, idx) => (
-                          <a 
-                            key={idx} 
-                            href={src.uri} 
-                            target="_blank" 
-                            rel="noopener noreferrer" 
-                            className="source-link-badge"
-                            title={src.title}
-                          >
-                            <svg viewBox="0 0 24 24" className="source-pdf-icon">
-                              <path d="M19,3H5C3.89,3 3,3.89 3,5V19A2,2 0 0,0 5,21H19A2,2 0 0,0 21,19V5C21,3.89 20.1,3 19,3M19,19H5V5H19V19M10,10.5H14V11.5H11.5V12.5H13.5V13.5H11.5V15H10V10.5M14.5,10.5H17.5A1.5,1.5 0 0,1 19,12V13.5A1.5,1.5 0 0,1 17.5,15H14.5V10.5M16,12V13.5H17.5V12H16M5.5,10.5H8.5V11.5H5.5V12.5H8V13.5H5.5V15H4V10.5H5.5" />
-                            </svg>
-                            {src.title}
-                          </a>
-                        ))}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-
-              <span className="message-meta">{msg.timestamp}</span>
-            </div>
-          </div>
-        ))}
-
-        {/* Loading Indicator */}
-        {isLoading && (
-          <div className="message-row agent-msg">
-            <div className="message-avatar">K</div>
-            <div className="message-bubble-wrapper">
-              <div className="message-bubble">
-                <div className="typing-indicator">
-                  <span className="typing-dot"></span>
-                  <span className="typing-dot"></span>
-                  <span className="typing-dot"></span>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
-        <div ref={scrollRef} />
-      </main>
-
-      {/* Input Form */}
-      <footer className="chat-input-container">
-        <form onSubmit={handleSend} className="chat-input-form">
-          <input
-            type="text"
-            className="chat-text-input"
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            placeholder="Stelle eine Frage zu KLARO Kleinkläranlagen..."
-            disabled={isLoading}
-            autoFocus
-          />
-          <button type="submit" className="chat-send-button" disabled={isLoading || !input.trim()}>
-            Senden
-          </button>
-        </form>
-        <p className="chat-footer-note">
-          KLARO KI-Assistent • Klares Wasser. Gesunde Zukunft.
-        </p>
-      </footer>
+        </footer>
+      </div>
     </div>
   );
 }

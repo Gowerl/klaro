@@ -591,3 +591,110 @@ body, html {
   color: #829ab1;
   cursor: not-allowed;
 }
+
+/* ==========================================================================
+   DASHBOARD WRAPPER & SIDEBAR STYLING
+   ========================================================================== */
+
+.app-layout-wrapper {
+  display: flex;
+  width: 100%;
+  height: 100%;
+  max-width: 1280px;
+  gap: 20px;
+  padding: 24px;
+  box-sizing: border-box;
+  align-items: center;
+  justify-content: center;
+}
+
+.dashboard-sidebar {
+  width: 280px;
+  height: 90%;
+  background-color: #ffffff;
+  border-radius: 16px;
+  border: 1px solid rgba(0, 91, 159, 0.1);
+  box-shadow: 0 10px 30px rgba(0, 91, 159, 0.04);
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  overflow-y: auto;
+  align-self: center;
+}
+
+.sidebar-title-section {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  border-bottom: 1px solid #e2e8f0;
+  padding-bottom: 16px;
+}
+
+.sidebar-title {
+  font-size: 1.2rem;
+  font-weight: 700;
+  color: var(--klaro-blue);
+}
+
+.sidebar-subtitle {
+  font-size: 0.8rem;
+  color: var(--klaro-text-muted);
+}
+
+.stats-group {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.stats-card {
+  background-color: var(--klaro-blue-light);
+  border-left: 4px solid var(--klaro-blue);
+  border-radius: 8px;
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  box-shadow: 0 2px 5px rgba(0, 91, 159, 0.02);
+}
+
+.stats-card-title {
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--klaro-text-muted);
+  font-weight: 600;
+}
+
+.stats-card-value {
+  font-size: 1.2rem;
+  font-weight: 700;
+  color: var(--klaro-blue);
+}
+
+.stats-card-desc {
+  font-size: 0.72rem;
+  color: var(--klaro-text-muted);
+}
+
+/* Adaptive scaling for layout wrapper */
+@media (max-width: 1024px) {
+  .app-layout-wrapper {
+    max-width: 100%;
+    padding: 0;
+    gap: 0;
+    height: 100%;
+  }
+
+  .dashboard-sidebar {
+    display: none; /* Auto-hide on tablets and mobiles for a clean view */
+  }
+
+  .chat-app-container {
+    height: 100% !important;
+    margin: 0 !important;
+    border-radius: 0 !important;
+    border: none !important;
+  }
+}
