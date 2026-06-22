@@ -442,6 +442,19 @@ body, html {
   transform: translateY(-0.5px) scale(1.05);
 }
 
+/* Web Citation Badge (Grün) */
+.inline-citation-badge.web-badge {
+  background-color: rgba(16, 185, 129, 0.07);
+  border: 1px solid rgba(16, 185, 129, 0.14);
+  color: #047857;
+}
+
+.inline-citation-badge.web-badge:hover {
+  background-color: #10b981;
+  color: #ffffff;
+  border-color: #10b981;
+}
+
 .inline-pdf-icon {
   width: 9px;
   height: 9px;

@@ -77,6 +77,7 @@ function App() {
   const [isLoading, setIsLoading] = useState(false);
   const [responseTime, setResponseTime] = useState<string | null>(null);
   const [scannedDocsCount, setScannedDocsCount] = useState<number>(0);
+  const [tokenCount, setTokenCount] = useState<{ query: number; reply: number; context: number; total: number } | null>(null);
 
   const scrollRef = useRef<HTMLDivElement>(null);
 
@@ -147,6 +148,12 @@ function App() {
         setScannedDocsCount(0);
       }
 
+      if (data.tokens) {
+        setTokenCount(data.tokens);
+      } else {
+        setTokenCount(null);
+      }
+
       const agentMessage: Message = {
         id: `agent-${Date.now()}`,
         role: 'agent',
@@ -183,12 +190,13 @@ function App() {
       {
         id: 'welcome',
         role: 'agent',
-        text: 'Chat zurückgesetzt. Hallo! Ich bin dein **KLARO KI-Assistent**. Wie kann ich dir heute helfen?',
+        text: 'Chat zurückgesetzt. Hallo! Ich am dein **KLARO KI-Assistent**. Wie kann ich dir heute helfen?',
         timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
       },
     ]);
     setSessionId(null);
     setInput('');
+    setTokenCount(null);
   };
 
   // Hilfsfunktion zum Rendern von strukturiertem Text (Fettgedrucktes, Listen, Absätze)
@@ -248,18 +256,26 @@ function App() {
           title = uri ? uri.split('/').pop().replace(/_/g, ' ').replace('.pdf', '') : 'Dokument';
         }
 
+        const isPdf = uri && (uri.toLowerCase().includes('.pdf') || uri.toLowerCase().includes('/rag-dokumente/'));
+
         return (
           <a
             key={`inline-cit-${lineIdx}-${refId}`}
             href={uri}
             target="_blank"
             rel="noopener noreferrer"
-            className="inline-citation-badge"
+            className={`inline-citation-badge ${isPdf ? 'pdf-badge' : 'web-badge'}`}
             title={title}
           >
-            <svg viewBox="0 0 24 24" className="inline-pdf-icon">
-              <path d="M19,3H5C3.89,3 3,3.89 3,5V19A2,2 0 0,0 5,21H19A2,2 0 0,0 21,19V5C21,3.89 20.1,3 19,3M19,19H5V5H19V19M10,10.5H14V11.5H11.5V12.5H13.5V13.5H11.5V15H10V10.5M14.5,10.5H17.5A1.5,1.5 0 0,1 19,12V13.5A1.5,1.5 0 0,1 17.5,15H14.5V10.5M16,12V13.5H17.5V12H16M5.5,10.5H8.5V11.5H5.5V12.5H8V13.5H5.5V15H4V10.5H5.5" />
-            </svg>
+            {isPdf ? (
+              <svg viewBox="0 0 24 24" className="inline-pdf-icon">
+                <path d="M19,3H5C3.89,3 3,3.89 3,5V19A2,2 0 0,0 5,21H19A2,2 0 0,0 21,19V5C21,3.89 20.1,3 19,3M19,19H5V5H19V19M10,10.5H14V11.5H11.5V12.5H13.5V13.5H11.5V15H10V10.5M14.5,10.5H17.5A1.5,1.5 0 0,1 19,12V13.5A1.5,1.5 0 0,1 17.5,15H14.5V10.5M16,12V13.5H17.5V12H16M5.5,10.5H8.5V11.5H5.5V12.5H8V13.5H5.5V15H4V10.5H5.5" />
+              </svg>
+            ) : (
+              <svg viewBox="0 0 24 24" className="inline-pdf-icon" style={{ fill: '#10b981' }}>
+                <path d="M17.9,17.39C17.64,16.59 16.89,16 16,16H15V13A1,1 0 0,0 14,12H8V10H10A1,1 0 0,0 11,9V7H13A2,2 0 0,0 15,5V4.59C17.93,5.77 20,8.64 20,12C20,14.08 19.2,15.97 17.9,17.39M11,19.93C7.07,19.5 4,16.18 4,12C4,9.66 5.05,7.56 6.72,6.13L11,11V13A1,1 0 0,0 12,14H13V16A1,1 0 0,0 14,17H15V18.33L11,19.93M12,2A10,10 0 0,0 2,12A10,10 0 0,0 12,22A10,10 0 0,0 22,12A10,10 0 0,0 12,2Z" />
+              </svg>
+            )}
             {refId + 1}
           </a>
         );
@@ -347,6 +363,24 @@ function App() {
             <span className="stats-card-desc">In der letzten Antwort referenziert</span>
           </div>
 
+          {/* Token Usage */}
+          <div className="stats-card" style={{ background: tokenCount ? 'rgba(16, 185, 129, 0.04)' : 'var(--klaro-blue-light)', borderLeftColor: tokenCount ? '#10b981' : 'var(--klaro-blue)' }}>
+            <span className="stats-card-title" style={{ color: tokenCount ? '#047857' : 'var(--klaro-text-muted)' }}>Token-Verbrauch</span>
+            <span className="stats-card-value" style={{ color: tokenCount ? '#047857' : 'var(--klaro-blue)' }}>
+              {tokenCount ? tokenCount.total.toLocaleString('de-DE') : 'Keine Abfrage'}
+            </span>
+            <span className="stats-card-desc">
+              {tokenCount 
+                ? `Prompt: ${tokenCount.query + tokenCount.context} | Antw: ${tokenCount.reply}` 
+                : 'Warte auf erste Frage...'}
+            </span>
+            {tokenCount && (tokenCount as any).cost !== undefined && (
+              <span className="stats-card-desc" style={{ marginTop: '6px', fontWeight: 'bold', color: '#10b981', display: 'block' }}>
+                Est. Kosten: {(tokenCount as any).cost.toLocaleString('de-DE', { minimumFractionDigits: 5, maximumFractionDigits: 5 })} €
+              </span>
+            )}
+          </div>
+
           {/* Knowledge Base */}
           <div className="stats-card">
             <span className="stats-card-title">Wissensdatenbank</span>
@@ -427,47 +461,79 @@ function App() {
                   {renderMessageText(msg.text, msg.citations, msg.references)}
                 </div>
 
-                {/* Gefundene Dokumente / PDF-Quellen rendering */}
+                {/* Gefundene Dokumente / PDF-Quellen & Weblinks rendering */}
                 {msg.role === 'agent' && msg.sources && msg.sources.length > 0 && (
                   <div className="message-sources-container">
-                    <span className="sources-title">Gefundene Dokumente:</span>
-                    {Object.entries(
-                      msg.sources.reduce((groups, src) => {
-                        const type = src.documentType || 'sonstiges';
-                        if (!groups[type]) groups[type] = [];
-                        groups[type].push(src);
-                        return groups;
-                      }, {} as Record<string, Source[]>)
-                    ).map(([type, items]) => (
-                      <div key={type} className="sources-group">
-                        <span className="sources-group-title">
-                          {DOCUMENT_TYPE_LABELS[type] || DOCUMENT_TYPE_LABELS.sonstiges}
+                    {/* 1. Sektion: PDFs / Dokumente */}
+                    {msg.sources.some(src => src.documentType !== 'website') && (
+                      <div className="sources-section" style={{ marginBottom: '12px' }}>
+                        <span className="sources-title" style={{ display: 'block', marginBottom: '8px', fontWeight: '700', color: 'var(--klaro-blue)' }}>
+                          Gefundene Dokumente (PDFs):
+                        </span>
+                        {Object.entries(
+                          msg.sources
+                            .filter(src => src.documentType !== 'website')
+                            .reduce((groups, src) => {
+                              const type = src.documentType || 'sonstiges';
+                              if (!groups[type]) groups[type] = [];
+                              groups[type].push(src);
+                              return groups;
+                            }, {} as Record<string, Source[]>)
+                        ).map(([type, items]) => (
+                          <div key={type} className="sources-group" style={{ marginBottom: '10px' }}>
+                            <span className="sources-group-title">
+                              {DOCUMENT_TYPE_LABELS[type] || DOCUMENT_TYPE_LABELS.sonstiges}
+                            </span>
+                            <div className="sources-list">
+                              {items.map((src, idx) => (
+                                <a 
+                                  key={idx} 
+                                  href={src.uri} 
+                                  target="_blank" 
+                                  rel="noopener noreferrer" 
+                                  className="source-link-badge"
+                                  title={src.title}
+                                >
+                                  <svg viewBox="0 0 24 24" className="source-pdf-icon">
+                                    <path d="M19,3H5C3.89,3 3,3.89 3,5V19A2,2 0 0,0 5,21H19A2,2 0 0,0 21,19V5C21,3.89 20.1,3 19,3M19,19H5V5H19V19M10,10.5H14V11.5H11.5V12.5H13.5V13.5H11.5V15H10V10.5M14.5,10.5H17.5A1.5,1.5 0 0,1 19,12V13.5A1.5,1.5 0 0,1 17.5,15H14.5V10.5M16,12V13.5H17.5V12H16M5.5,10.5H8.5V11.5H5.5V12.5H8V13.5H5.5V15H4V10.5H5.5" />
+                                  </svg>
+                                  {src.title}
+                                </a>
+                              ))}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+
+                    {/* 2. Sektion: Weblinks */}
+                    {msg.sources.some(src => src.documentType === 'website') && (
+                      <div className="sources-section" style={{ marginTop: msg.sources.some(src => src.documentType !== 'website') ? '16px' : '0' }}>
+                        <span className="sources-title" style={{ display: 'block', marginBottom: '8px', fontWeight: '700', color: '#10b981' }}>
+                          Gefundene Weblinks (Klaro Website):
                         </span>
                         <div className="sources-list">
-                          {items.map((src, idx) => (
-                            <a 
-                              key={idx} 
-                              href={src.uri} 
-                              target="_blank" 
-                              rel="noopener noreferrer" 
-                              className="source-link-badge"
-                              title={src.title}
-                            >
-                              {src.documentType === 'website' ? (
-                                <svg viewBox="0 0 24 24" className="source-pdf-icon">
-                                  <path d="M17.9,17.39C17.64,16.59 16.89,16 16,16H15V13A1,1 0 0,0 14,12H8V10H10A1,1 0 0,0 11,9V7H13A2,2 0 0,0 15,5V4.59C17.93,5.77 20,8.64 20,12C20,14.08 19.2,15.97 17.9,17.39M11,19.93C7.07,19.5 4,16.18 4,12C4,9.66 5.05,7.56 6.72,6.13L11,11V13A1,1 0 0,0 12,14H13V16A1,1 0 0,0 14,17H15V18.33L11,19.93M12,2A10,10 0 0,0 2,12A10,10 0 0,0 12,22A10,10 0 0,0 22,12A10,10 0 0,0 12,2Z" />
+                          {msg.sources
+                            .filter(src => src.documentType === 'website')
+                            .map((src, idx) => (
+                              <a 
+                                key={idx} 
+                                href={src.uri} 
+                                target="_blank" 
+                                rel="noopener noreferrer" 
+                                className="source-link-badge"
+                                title={src.title}
+                                style={{ borderColor: 'rgba(16, 185, 129, 0.2)', backgroundColor: 'rgba(16, 185, 129, 0.05)' }}
+                              >
+                                <svg viewBox="0 0 24 24" className="source-pdf-icon" style={{ fill: '#10b981' }}>
+                                  <path d="M14,3V5H17.59L7.76,14.76L9.17,16.17L19,6.5V9.5H21V3H14M19,19H5V5H12V3H5C3.89,3 3,3.9 3,5V19A2,2 0 0,0 5,21H19A2,2 0 0,0 21,19V12H19V19Z" />
                                 </svg>
-                              ) : (
-                                <svg viewBox="0 0 24 24" className="source-pdf-icon">
-                                  <path d="M19,3H5C3.89,3 3,3.89 3,5V19A2,2 0 0,0 5,21H19A2,2 0 0,0 21,19V5C21,3.89 20.1,3 19,3M19,19H5V5H19V19M10,10.5H14V11.5H11.5V12.5H13.5V13.5H11.5V15H10V10.5M14.5,10.5H17.5A1.5,1.5 0 0,1 19,12V13.5A1.5,1.5 0 0,1 17.5,15H14.5V10.5M16,12V13.5H17.5V12H16M5.5,10.5H8.5V11.5H5.5V12.5H8V13.5H5.5V15H4V10.5H5.5" />
-                                </svg>
-                              )}
-                              {src.title}
-                            </a>
-                          ))}
+                                <span style={{ color: '#047857' }}>{src.title}</span>
+                              </a>
+                            ))}
                         </div>
                       </div>
-                    ))}
+                    )}
                   </div>
                 )}
 
